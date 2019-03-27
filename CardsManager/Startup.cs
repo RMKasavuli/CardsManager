@@ -11,6 +11,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json.Serialization;
 
 namespace CardsManager
 {
@@ -26,10 +27,18 @@ namespace CardsManager
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
+            services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2)
+                             .AddJsonOptions(opt => {
+                                 var resolver = opt.SerializerSettings.ContractResolver;
+                                 if (resolver != null)
+                                     (resolver as DefaultContractResolver).NamingStrategy = null;
+                             });
 
-            services.AddDbContext<PaymentDetailContext>(options =>
-            options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
+            services.AddDbContext<PaymentDetailContext>(opt =>
+            opt.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
+
+            //add cors function 
+            services.AddCors();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -39,6 +48,10 @@ namespace CardsManager
             {
                 app.UseDeveloperExceptionPage();
             }
+
+            app.UseCors(opt => opt.WithOrigins("http://localhost:4200")
+            .AllowAnyMethod()
+            .AllowAnyHeader());
 
             app.UseMvc();
         }
